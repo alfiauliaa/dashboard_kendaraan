@@ -5,6 +5,8 @@ import re
 import itertools
 from datetime import datetime
 
+# run: python -m streamlit run app.py
+
 st.title("Analisis Volume Lalu Lintas Mingguan")
 
 # === Step 1: Upload 7 File Excel (Masing-masing 1 Hari) ===
