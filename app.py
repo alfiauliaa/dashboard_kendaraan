@@ -39,8 +39,8 @@ with col1:
     st.markdown("""
     **Ketentuan File Mingguan:**
     - Upload **7 file Excel** (Senin - Minggu, urutan bebas)
-    - Format nama file: `tanggal [angka] [bulan].xlsx` 
-      - Contoh: `tanggal 24 juli.xlsx`
+    - Format nama file: `tanggal [angka] [bulan].xlsx` ada 7 file, senin - minggu
+      - Contoh: `tanggal 23 juli.xlsx - tanggal 27 juli.xlsx`
     - Setiap file berisi **10 sheet** (10 titik checkpoint) di list biru disamping
     - Format nama sheet: `1. 23 juli`, `2. 23 juli`, dst... (1. 23 juli = Diponegoro tanggal 23 juli)
     - Pastikan setiap sheet memiliki format yang konsisten
