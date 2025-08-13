@@ -1,5 +1,8 @@
+
 import streamlit as st
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 import io
 import re
 import itertools
@@ -15,7 +18,7 @@ st.set_page_config(
 
 # Main header
 st.title("🚦 Analisis Volume Lalu Lintas")
-st.subheader("Estimasi Distribusi Kendaraan Bulanan")
+st.subheader("Estimasi & Analisis Distribusi Kendaraan Bulanan")
 
 # Penjelasan singkat
 with st.expander("ℹ️ Cara Penggunaan Aplikasi", expanded=False):
@@ -24,6 +27,7 @@ with st.expander("ℹ️ Cara Penggunaan Aplikasi", expanded=False):
     1. **Upload Data Mingguan**: Unggah 7 file Excel (Senin-Minggu) untuk menghitung proporsi kendaraan di 10 titik.
     2. **Upload Data Bulanan**: Unggah 1 file Excel berisi volume kendaraan harian (1-31 Juli).
     3. **Hasil Estimasi**: Dapatkan distribusi volume kendaraan per titik berdasarkan proporsi mingguan.
+    4. **Analisis**: Lihat dashboard rekap harian dan bulanan untuk analisis lebih lanjut.
 
     **Contoh:**
     - Data mingguan: Titik Diponegoro = 15%, Imam Bonjol = 20%, dst.
@@ -278,6 +282,7 @@ if uploaded_files and len(uploaded_files) == 7:
                 )
         else:
             st.error("❌ Tidak ada data valid. Periksa format file mingguan.")
+            st.stop()
 
 # STEP 2: UPLOAD DATA BULANAN
 st.header("📊 Langkah 2: Unggah Data Bulanan")
@@ -611,6 +616,170 @@ if uploaded_bulanan and 'df_proporsi' in locals():
             file_name="proporsi_mingguan.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
+    # DASHBOARD ANALISIS
+    st.header("📊 Dashboard Analisis Lalu Lintas")
+
+    @st.cache_data
+    def prepare_dashboard_data(df):
+        df = df.copy()
+        df["Tanggal"] = pd.to_datetime(df["Tanggal"], format='mixed', dayfirst=True, errors='coerce')
+        df["Hari"] = df["Tanggal"].dt.day_name()
+        keterangan_map = {
+            "diponegoro": "Keluar Batu", "imam bonjol": "Batu", "a yani": "Batu", "gajah mada": "Batu",
+            "sudirman": "Keluar Batu", "brantas": "Masuk Batu", "patimura": "Masuk Batu",
+            "trunojoyo": "Masuk Batu", "arumdalu": "Masuk Batu", "mojorejo": "Masuk Batu"
+        }
+        df["Keterangan"] = df["Source"].map(keterangan_map)
+        return df
+
+    df_dashboard = prepare_dashboard_data(df_final)
+    jam_cols = [col for col in df_dashboard.columns if col.endswith(":00:00")]
+
+    tab1, tab2 = st.tabs(["📅 Rekap Harian", "📆 Rekap Bulanan"])
+
+    with tab1:
+        st.header("📅 Rekap Harian")
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            tanggal_terpilih = st.date_input("Pilih Tanggal", df_dashboard["Tanggal"].min(), key="daily_date_select")
+        with col2:
+            source_terpilih = st.selectbox("Pilih Lokasi", sorted(df_dashboard["Source"].unique()), key="daily_location_select")
+
+        df_filtered = df_dashboard[(df_dashboard["Tanggal"] == pd.to_datetime(tanggal_terpilih)) & 
+                                (df_dashboard["Source"] == source_terpilih)]
+
+        if df_filtered.empty:
+            st.warning("⚠️ Tidak ada data untuk tanggal dan lokasi yang dipilih.")
+        else:
+            st.subheader(f"Rekap **{source_terpilih}** - {tanggal_terpilih.strftime('%A, %d %B %Y')}")
+            
+            df_melted = df_filtered.melt(
+                id_vars=["Tanggal", "Source", "Jenis Kendaraan"], 
+                value_vars=jam_cols,
+                var_name="Jam", 
+                value_name="Jumlah"
+            )
+
+            total_per_kendaraan = df_melted.groupby("Jenis Kendaraan")["Jumlah"].sum().reset_index()
+            total_per_kendaraan["Persen"] = (total_per_kendaraan["Jumlah"] / 
+                                            total_per_kendaraan["Jumlah"].sum() * 100).round(2)
+            total_per_kendaraan = total_per_kendaraan.sort_values(by="Jumlah", ascending=False)
+
+            st.subheader("🚗 Jenis Kendaraan Terbanyak")
+            for idx, row in total_per_kendaraan.head(3).iterrows():
+                st.markdown(f"**{row['Jenis Kendaraan']}**: {int(row['Jumlah']):,} kendaraan ({row['Persen']}%)")
+
+            col1, col2 = st.columns([1.2, 1])
+            with col1:
+                st.subheader("📄 Data Jenis Kendaraan")
+                st.dataframe(total_per_kendaraan, use_container_width=True)
+
+            with col2:
+                st.subheader("📊 Diagram Jenis Kendaraan")
+                fig1, ax1 = plt.subplots()
+                wedges, texts, autotexts = ax1.pie(
+                    total_per_kendaraan["Jumlah"],
+                    labels=None,
+                    autopct='%1.1f%%',
+                    startangle=90,
+                    counterclock=False,
+                    colors=sns.color_palette("pastel")[0:len(total_per_kendaraan)],
+                    textprops=dict(color="black")
+                )
+                ax1.axis('equal')
+                ax1.legend(
+                    wedges,
+                    total_per_kendaraan["Jenis Kendaraan"],
+                    title="Jenis Kendaraan",
+                    loc="center left",
+                    bbox_to_anchor=(1, 0, 0.5, 1)
+                )
+                st.pyplot(fig1)
+
+            st.markdown("---")
+            st.subheader("📈 Pola Waktu Kendaraan")
+            kendaraan_pilih = st.selectbox("Pilih Jenis Kendaraan", total_per_kendaraan["Jenis Kendaraan"], key="daily_vehicle_select")
+            df_jam = df_melted[df_melted["Jenis Kendaraan"] == kendaraan_pilih]
+
+            fig2, ax2 = plt.subplots(figsize=(12, 4))
+            sns.barplot(data=df_jam, x="Jam", y="Jumlah", ax=ax2, palette="Set2")
+            ax2.set_title(f"Distribusi Waktu - {kendaraan_pilih}")
+            ax2.set_ylabel("Jumlah Kendaraan")
+            ax2.set_xlabel("Jam")
+            plt.xticks(rotation=45)
+            st.pyplot(fig2)
+
+            st.markdown("---")
+            st.subheader("📦 Total Kendaraan Masuk/Keluar Batu")
+            df_tanggal = df_dashboard[df_dashboard["Tanggal"] == pd.to_datetime(tanggal_terpilih)]
+            total_by_keterangan = (
+                df_tanggal
+                .melt(id_vars=["Keterangan"], value_vars=jam_cols, value_name="Jumlah")
+                .groupby("Keterangan")["Jumlah"]
+                .sum()
+                .reset_index()
+            )
+
+            for _, row in total_by_keterangan.iterrows():
+                st.markdown(f"**{row['Keterangan']}**: {int(row['Jumlah']):,} kendaraan")
+
+    with tab2:
+        st.header("📆 Rekap Bulanan")
+        selected_month = st.selectbox(
+            "Pilih Bulan", 
+            sorted(df_dashboard["Tanggal"].dt.strftime("%B %Y").unique()),
+            key="monthly_month_select"
+        )
+        month_filter = df_dashboard["Tanggal"].dt.strftime("%B %Y") == selected_month
+        df_bulanan = df_dashboard[month_filter]
+
+        if df_bulanan.empty:
+            st.warning("⚠️ Tidak ada data untuk bulan yang dipilih.")
+        else:
+            df_melted_bulan = df_bulanan.melt(
+                id_vars=["Source", "Jenis Kendaraan"], 
+                value_vars=jam_cols,
+                var_name="Jam", 
+                value_name="Jumlah"
+            )
+            grouped = df_melted_bulan.groupby(["Source", "Jenis Kendaraan"])["Jumlah"].sum().reset_index()
+
+            lokasi_terpilih = st.selectbox("Pilih Lokasi", sorted(grouped["Source"].unique()), key="monthly_location_select")
+            df_source = grouped[grouped["Source"] == lokasi_terpilih]
+
+            df_source["Persen"] = (df_source["Jumlah"] / df_source["Jumlah"].sum() * 100).round(2)
+            
+            total_kendaraan_bulan = df_source["Jumlah"].sum()
+            st.subheader("🚗 Total Kendaraan Bulan Ini")
+            st.metric(label="Total Kendaraan", value=f"{int(total_kendaraan_bulan):,} kendaraan")
+
+            col1, col2 = st.columns([1.2, 1])
+            with col1:
+                st.subheader("📄 Data Jenis Kendaraan")
+                st.dataframe(df_source, use_container_width=True)
+
+            with col2:
+                st.subheader(f"📊 Diagram Jenis Kendaraan - {lokasi_terpilih}")
+                fig, ax = plt.subplots()
+                wedges, texts, autotexts = ax.pie(
+                    df_source["Jumlah"],
+                    labels=None,
+                    autopct='%1.1f%%',
+                    startangle=90,
+                    counterclock=False,
+                    colors=sns.color_palette("pastel")[0:len(df_source)],
+                    textprops=dict(color="black")
+                )
+                ax.axis('equal')
+                ax.legend(
+                    wedges,
+                    df_source["Jenis Kendaraan"],
+                    title="Jenis Kendaraan",
+                    loc="center left",
+                    bbox_to_anchor=(1, 0, 0.5, 1)
+                )
+                st.pyplot(fig)
 
 elif uploaded_bulanan and 'df_proporsi' not in locals():
     st.warning("⚠️ Unggah data mingguan terlebih dahulu untuk menghitung proporsi!")
