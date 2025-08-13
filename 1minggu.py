@@ -677,25 +677,37 @@ if uploaded_bulanan and 'df_proporsi' in locals():
 
             with col2:
                 st.subheader("📊 Diagram Jenis Kendaraan")
+
+                # Hitung persen biar bisa dipakai di legend
+                total_per_kendaraan["Persen"] = (
+                    total_per_kendaraan["Jumlah"] / total_per_kendaraan["Jumlah"].sum() * 100
+                ).round(1)
+
                 fig1, ax1 = plt.subplots()
-                wedges, texts, autotexts = ax1.pie(
+                wedges, texts = ax1.pie(
                     total_per_kendaraan["Jumlah"],
-                    labels=None,
-                    autopct='%1.1f%%',
+                    labels=None,  # tidak pakai label di pie
                     startangle=90,
                     counterclock=False,
                     colors=sns.color_palette("pastel")[0:len(total_per_kendaraan)],
-                    textprops=dict(color="black")
                 )
                 ax1.axis('equal')
+
+                # Legend dengan persentase di dalam teks
+                legend_labels = [
+                    f"{jenis} ({persen}%)" 
+                    for jenis, persen in zip(total_per_kendaraan["Jenis Kendaraan"], total_per_kendaraan["Persen"])
+                ]
                 ax1.legend(
                     wedges,
-                    total_per_kendaraan["Jenis Kendaraan"],
+                    legend_labels,
                     title="Jenis Kendaraan",
                     loc="center left",
-                    bbox_to_anchor=(1, 0, 0.5, 1)
+                    bbox_to_anchor=(1, 0, 0.5, 1),
+                    frameon=False
                 )
                 st.pyplot(fig1)
+
 
             st.markdown("---")
             st.subheader("📈 Pola Waktu Kendaraan")
@@ -761,25 +773,37 @@ if uploaded_bulanan and 'df_proporsi' in locals():
 
             with col2:
                 st.subheader(f"📊 Diagram Jenis Kendaraan - {lokasi_terpilih}")
-                fig, ax = plt.subplots()
-                wedges, texts, autotexts = ax.pie(
-                    df_source["Jumlah"],
-                    labels=None,
-                    autopct='%1.1f%%',
+
+            # Hitung persen biar bisa dipakai di legend
+                total_per_kendaraan["Persen"] = (
+                    total_per_kendaraan["Jumlah"] / total_per_kendaraan["Jumlah"].sum() * 100
+                ).round(1)
+
+                fig1, ax1 = plt.subplots()
+                wedges, texts = ax1.pie(
+                    total_per_kendaraan["Jumlah"],
+                    labels=None,  # tidak pakai label di pie
                     startangle=90,
                     counterclock=False,
-                    colors=sns.color_palette("pastel")[0:len(df_source)],
-                    textprops=dict(color="black")
+                    colors=sns.color_palette("pastel")[0:len(total_per_kendaraan)],
                 )
-                ax.axis('equal')
-                ax.legend(
+                ax1.axis('equal')
+
+                # Legend dengan persentase di dalam teks
+                legend_labels = [
+                    f"{jenis} ({persen}%)" 
+                    for jenis, persen in zip(total_per_kendaraan["Jenis Kendaraan"], total_per_kendaraan["Persen"])
+                ]
+                ax1.legend(
                     wedges,
-                    df_source["Jenis Kendaraan"],
+                    legend_labels,
                     title="Jenis Kendaraan",
                     loc="center left",
-                    bbox_to_anchor=(1, 0, 0.5, 1)
+                    bbox_to_anchor=(1, 0, 0.5, 1),
+                    frameon=False
                 )
-                st.pyplot(fig)
+                st.pyplot(fig1)
+
 
 elif uploaded_bulanan and 'df_proporsi' not in locals():
     st.warning("⚠️ Unggah data mingguan terlebih dahulu untuk menghitung proporsi!")

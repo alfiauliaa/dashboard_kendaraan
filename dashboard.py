@@ -10,7 +10,7 @@ st.set_page_config(page_title="Dashboard Lalu Lintas", layout="wide")
 
 @st.cache_data
 def load_data():
-    df = pd.read_excel("rekap juli.xlsx")
+    df = pd.read_excel("hasil rekap juli.xlsx")
     df["Tanggal"] = pd.to_datetime(df["Tanggal"], dayfirst=True, errors='coerce')
     df["Hari"] = df["Tanggal"].dt.day_name()
     keterangan_map = {
@@ -73,24 +73,34 @@ with tab1:
 
         with col2:
             st.subheader("Diagram Jenis Kendaraan")
+             # Hitung persen biar bisa dipakai di legend
+            total_per_kendaraan["Persen"] = (
+                    total_per_kendaraan["Jumlah"] / total_per_kendaraan["Jumlah"].sum() * 100
+                ).round(1)
+   
             fig1, ax1 = plt.subplots()
-            wedges, texts, autotexts = ax1.pie(
-                total_per_kendaraan["Jumlah"],
-                labels=None,
-                autopct='%1.1f%%',
-                startangle=90,
-                counterclock=False,
-                colors=sns.color_palette("pastel")[0:len(total_per_kendaraan)],
-                textprops=dict(color="black")
-            )
+            wedges, texts = ax1.pie(
+                    total_per_kendaraan["Jumlah"],
+                    labels=None,  # tidak pakai label di pie
+                    startangle=90,
+                    counterclock=False,
+                    colors=sns.color_palette("pastel")[0:len(total_per_kendaraan)],
+                )
             ax1.axis('equal')
+
+                # Legend dengan persentase di dalam teks
+            legend_labels = [
+                    f"{jenis} ({persen}%)" 
+                    for jenis, persen in zip(total_per_kendaraan["Jenis Kendaraan"], total_per_kendaraan["Persen"])
+                ]
             ax1.legend(
-                wedges,
-                total_per_kendaraan["Jenis Kendaraan"],
-                title="Jenis Kendaraan",
-                loc="center left",
-                bbox_to_anchor=(1, 0, 0.5, 1)
-            )
+                    wedges,
+                    legend_labels,
+                    title="Jenis Kendaraan",
+                    loc="center left",
+                    bbox_to_anchor=(1, 0, 0.5, 1),
+                    frameon=False
+                )
             st.pyplot(fig1)
 
         st.markdown("---")
@@ -163,23 +173,33 @@ with tab2:
 
         with col2:
             st.subheader(f"Diagram Jenis Kendaraan Bulanan - {lokasi_terpilih}")
-            fig, ax = plt.subplots()
-            wedges, texts, autotexts = ax.pie(
-                df_source["Jumlah"],
-                labels=None,
-                autopct='%1.1f%%',
-                startangle=90,
-                counterclock=False,
-                colors=sns.color_palette("pastel")[0:len(df_source)],
-                textprops=dict(color="black")
-            )
-            ax.axis('equal')
-            ax.legend(
-                wedges,
-                df_source["Jenis Kendaraan"],
-                title="Jenis Kendaraan",
-                loc="center left",
-                bbox_to_anchor=(1, 0, 0.5, 1)
-            )
-            st.pyplot(fig)
+             # Hitung persen biar bisa dipakai di legend
+            total_per_kendaraan["Persen"] = (
+                    total_per_kendaraan["Jumlah"] / total_per_kendaraan["Jumlah"].sum() * 100
+                ).round(1)
+
+            fig1, ax1 = plt.subplots()
+            wedges, texts = ax1.pie(
+                    total_per_kendaraan["Jumlah"],
+                    labels=None,  # tidak pakai label di pie
+                    startangle=90,
+                    counterclock=False,
+                    colors=sns.color_palette("pastel")[0:len(total_per_kendaraan)],
+                )
+            ax1.axis('equal')
+
+                # Legend dengan persentase di dalam teks
+            legend_labels = [
+                    f"{jenis} ({persen}%)" 
+                    for jenis, persen in zip(total_per_kendaraan["Jenis Kendaraan"], total_per_kendaraan["Persen"])
+                ]
+            ax1.legend(
+                    wedges,
+                    legend_labels,
+                    title="Jenis Kendaraan",
+                    loc="center left",
+                    bbox_to_anchor=(1, 0, 0.5, 1),
+                    frameon=False
+                )
+            st.pyplot(fig1)
 
