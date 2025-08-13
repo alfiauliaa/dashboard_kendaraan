@@ -10,7 +10,7 @@ st.set_page_config(page_title="Dashboard Lalu Lintas", layout="wide")
 
 @st.cache_data
 def load_data():
-    df = pd.read_excel("estimasi_bulanan_juli_final.xlsx")
+    df = pd.read_excel("rekap juli.xlsx")
     df["Tanggal"] = pd.to_datetime(df["Tanggal"], dayfirst=True, errors='coerce')
     df["Hari"] = df["Tanggal"].dt.day_name()
     keterangan_map = {
