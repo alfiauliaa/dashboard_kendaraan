@@ -301,7 +301,7 @@ with col2:
 uploaded_bulanan = st.file_uploader(
     "📈 Unggah File Data Bulanan (.xlsx)", 
     type=["xlsx"],
-    help="File Excel berisi volume kendaraan bulan Juli"
+    help="File Excel berisi volume kendaraan bulan ..."
 )
 
 # Process estimation
