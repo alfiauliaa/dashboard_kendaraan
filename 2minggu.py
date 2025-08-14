@@ -628,8 +628,26 @@ if 'df_proporsi' in locals():
         with st.expander("👁️ Lihat Hasil Estimasi (20 Baris Pertama)", expanded=True):
             st.dataframe(df_final.head(20), use_container_width=True)
         
-        col1, col2 = st.columns(2)
+        # DOWNLOAD BUTTONS - Yang diminta: button khusus untuk hasil estimasi saja
+        col1, col2, col3 = st.columns(3)
+        
+        # Button 1: Hasil Estimasi Saja (Yang diminta user)
         with col1:
+            output_estimasi_only = io.BytesIO()
+            with pd.ExcelWriter(output_estimasi_only, engine="openpyxl") as writer:
+                df_final.to_excel(writer, index=False, sheet_name="estimasi_volume")
+            
+            st.download_button(
+                "📊 Unduh Hasil Estimasi", 
+                data=output_estimasi_only.getvalue(), 
+                file_name=f"hasil rekap {bulan_nama}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                type="primary",
+                help="Download hanya hasil estimasi volume kendaraan"
+            )
+        
+        # Button 2: Hasil Lengkap dengan semua sheet
+        with col2:
             output_final = io.BytesIO()
             with pd.ExcelWriter(output_final, engine="openpyxl") as writer:
                 df_final.to_excel(writer, index=False, sheet_name="estimasi_final")
@@ -641,12 +659,13 @@ if 'df_proporsi' in locals():
             st.download_button(
                 "🎉 Unduh Hasil Lengkap", 
                 data=output_final.getvalue(), 
-                file_name=f"estimasi_volume_lalu_lintas_{bulan_nama}_2minggu.xlsx",
+                file_name=f"estimasi_volume_lalu_lintas_{bulan_nama}_lengkap.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                type="primary"
+                help="Download lengkap dengan proporsi dan data mentah"
             )
         
-        with col2:
+        # Button 3: Proporsi 2 Minggu saja
+        with col3:
             output_proporsi = io.BytesIO()
             with pd.ExcelWriter(output_proporsi, engine='openpyxl') as writer:
                 df_proporsi.to_excel(writer, index=False, sheet_name="proporsi_2minggu")
@@ -655,7 +674,8 @@ if 'df_proporsi' in locals():
                 "📊 Unduh Proporsi 2 Minggu", 
                 data=output_proporsi.getvalue(), 
                 file_name=f"proporsi_2minggu_{bulan_nama}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                help="Download data proporsi dari 2 minggu"
             )
 
         # DASHBOARD ANALISIS
