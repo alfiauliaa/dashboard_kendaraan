@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import seaborn as sns
@@ -308,15 +307,22 @@ uploaded_bulanan = st.file_uploader(
 if uploaded_bulanan and 'df_proporsi' in locals():
     with st.spinner("🔄 Memproses data bulanan..."):
         nama_file_bulanan = uploaded_bulanan.name.lower()
+        
+        # Extract month from filename
         match = re.search(r"(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)", nama_file_bulanan, re.IGNORECASE)
         bulan_map = {
             "januari": 1, "februari": 2, "maret": 3, "april": 4,
             "mei": 5, "juni": 6, "juli": 7, "agustus": 8,
             "september": 9, "oktober": 10, "november": 11, "desember": 12
         }
-        bulan = 7
+        
+        # Store month name for filename
+        bulan_nama = "juli"  # default
+        bulan = 7  # default
+        
         if match and match.group(1).lower() in bulan_map:
-            bulan = bulan_map[match.group(1).lower()]
+            bulan_nama = match.group(1).lower()
+            bulan = bulan_map[bulan_nama]
         
         xls = pd.read_excel(uploaded_bulanan, sheet_name=None, header=None)
         list_df = []
@@ -588,8 +594,28 @@ if uploaded_bulanan and 'df_proporsi' in locals():
     with st.expander("👁️ Lihat Hasil Estimasi (20 Baris Pertama)", expanded=True):
         st.dataframe(df_final.head(20), use_container_width=True)
     
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
+    
+    # Button 1: Hasil Estimasi Saja (tanpa sheet tambahan)
     with col1:
+        output_estimasi_only = io.BytesIO()
+        with pd.ExcelWriter(output_estimasi_only, engine="openpyxl") as writer:
+            df_final.to_excel(writer, index=False, sheet_name="estimasi_volume")
+        
+        # Capitalize first letter of month name for filename
+        bulan_nama_formatted = bulan_nama.capitalize()
+        
+        st.download_button(
+            "🎯 Unduh Hasil Estimasi Saja", 
+            data=output_estimasi_only.getvalue(), 
+            file_name=f" hasil rekap {bulan_nama_formatted}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            type="primary",
+            help=f"Download hasil estimasi volume kendaraan bulan {bulan_nama_formatted} tanpa sheet tambahan"
+        )
+    
+    # Button 2: Hasil Lengkap dengan sheet tambahan
+    with col2:
         output_final = io.BytesIO()
         with pd.ExcelWriter(output_final, engine="openpyxl") as writer:
             df_final.to_excel(writer, index=False, sheet_name="estimasi_final")
@@ -598,20 +624,21 @@ if uploaded_bulanan and 'df_proporsi' in locals():
                 missing_data.to_excel(writer, index=False, sheet_name="data_hilang")
         
         st.download_button(
-            "🎉 Unduh Hasil Estimasi Lengkap", 
+            "📊 Unduh Hasil Lengkap", 
             data=output_final.getvalue(), 
             file_name="estimasi_volume_lalu_lintas.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            type="primary"
+            help="Download hasil estimasi dengan proporsi mingguan dan analisis data hilang"
         )
     
-    with col2:
+    # Button 3: Proporsi Mingguan saja
+    with col3:
         output_proporsi = io.BytesIO()
         with pd.ExcelWriter(output_proporsi, engine='openpyxl') as writer:
             df_proporsi.to_excel(writer, index=False, sheet_name="proporsi_mingguan")
         
         st.download_button(
-            "📊 Unduh Proporsi Mingguan", 
+            "📈 Unduh Proporsi Mingguan", 
             data=output_proporsi.getvalue(), 
             file_name="proporsi_mingguan.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -774,25 +801,25 @@ if uploaded_bulanan and 'df_proporsi' in locals():
             with col2:
                 st.subheader(f"📊 Diagram Jenis Kendaraan - {lokasi_terpilih}")
 
-            # Hitung persen biar bisa dipakai di legend
-                total_per_kendaraan["Persen"] = (
-                    total_per_kendaraan["Jumlah"] / total_per_kendaraan["Jumlah"].sum() * 100
+                # Hitung persen biar bisa dipakai di legend
+                df_source["Persen"] = (
+                    df_source["Jumlah"] / df_source["Jumlah"].sum() * 100
                 ).round(1)
 
                 fig1, ax1 = plt.subplots()
                 wedges, texts = ax1.pie(
-                    total_per_kendaraan["Jumlah"],
+                    df_source["Jumlah"],
                     labels=None,  # tidak pakai label di pie
                     startangle=90,
                     counterclock=False,
-                    colors=sns.color_palette("pastel")[0:len(total_per_kendaraan)],
+                    colors=sns.color_palette("pastel")[0:len(df_source)],
                 )
                 ax1.axis('equal')
 
                 # Legend dengan persentase di dalam teks
                 legend_labels = [
                     f"{jenis} ({persen}%)" 
-                    for jenis, persen in zip(total_per_kendaraan["Jenis Kendaraan"], total_per_kendaraan["Persen"])
+                    for jenis, persen in zip(df_source["Jenis Kendaraan"], df_source["Persen"])
                 ]
                 ax1.legend(
                     wedges,
