@@ -640,7 +640,7 @@ if 'df_proporsi' in locals():
             st.download_button(
                 "📊 Unduh Hasil Estimasi", 
                 data=output_estimasi_only.getvalue(), 
-                file_name=f"hasil rekap {bulan_nama}.xlsx",
+                file_name=f"hasil rekap {bulan_nama} dari 2 minggu.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 type="primary",
                 help="Download hanya hasil estimasi volume kendaraan"

@@ -608,7 +608,7 @@ if uploaded_bulanan and 'df_proporsi' in locals():
         st.download_button(
             "🎯 Unduh Hasil Estimasi Saja", 
             data=output_estimasi_only.getvalue(), 
-            file_name=f" hasil rekap {bulan_nama_formatted}.xlsx",
+            file_name=f" hasil rekap {bulan_nama_formatted} dari 1 minggu.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             type="primary",
             help=f"Download hasil estimasi volume kendaraan bulan {bulan_nama_formatted} tanpa sheet tambahan"
